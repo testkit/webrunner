@@ -1,0 +1,74 @@
+[
+	{"category": "HTML5", "tests":
+		["canvas-html5-tests",
+		"audio-html5-tests",
+		"video-html5-tests",
+		"appcache-html5-tests",
+		"browserstate-html5-tests",
+		"dnd-html5-tests",
+		"extra-html5-tests",
+		"forms-html5-tests",
+		"jsenhance-html5-tests",
+		"sandbox-html5-tests",
+		"sessionhistory-html5-tests",
+		"svg-html5-tests"]
+  	},
+
+	{"category": "CSS", "tests":
+		[ "2dtransforms-css3-tests",
+		"3dtransforms-css3-tests",
+		"animations-css3-tests",
+		"backgrounds-css3-tests",
+		"colors-css3-tests",
+		"flexiblebox-css3-tests",
+		"fonts-css3-tests",
+		"mediaqueries-css3-tests",
+		"multicolumn-css3-tests",
+		"text-css3-tests",
+		"transitions-css3-tests",
+		"ui-css3-tests"]
+	},
+
+	{"category": "W3C", "tests":
+		["workers-w3c-tests",
+		"filesystemapi-w3c-tests",
+		"animationtiming-w3c-tests",
+		"batterystatus-w3c-tests",
+		"cors-w3c-tests",
+		"csp-w3c-tests",
+		"deviceorientation-w3c-tests",
+		"fileapi-w3c-tests",
+		"filewriterapi-w3c-tests",
+		"geoallow-w3c-tests",
+		"gumallow-w3c-tests",
+		"indexeddb-w3c-tests",
+		"mediacapture-w3c-tests",
+		"navigationtiming-w3c-tests",
+		"netinfo-w3c-tests",
+		"notification-w3c-tests",
+		"pagevisibility-w3c-tests",
+		"screenorientation-w3c-tests",
+		"selectorslevel1-w3c-tests",
+		"selectorslevel2-w3c-tests",
+		"sse-w3c-tests",
+		"touchevent-w3c-tests",
+		"vibration-w3c-tests",
+		"webaudio-w3c-tests",
+		"webdatabase-w3c-tests",
+		"webmessaging-w3c-tests",
+		"websocket-w3c-tests",
+		"webstorage-w3c-tests",
+		"wgtapi01-w3c-tests",
+		"wgtapi02-w3c-tests",
+		"widget01-w3c-tests",
+		"widget02-w3c-tests",
+		"widgetpolicy-w3c-tests",
+		"xmlhttprequest-w3c-tests"]
+	},
+
+	{"category": "NonW3C", "tests":
+		["fullscreen-nonw3c-tests",
+		"typedarrays-nonw3c-tests",
+		"webgl-nonw3c-tests"]
+	}
+]
