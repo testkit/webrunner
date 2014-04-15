@@ -163,6 +163,12 @@
 
 				var oPass = $(oTestDoc).find(".pass");
 				var oFail = $(oTestDoc).find(".fail");
+				// Qunit sub-cases
+				var oUnitRes = $(oTestDoc).find("ol.qunit-assert-list");
+				$(oUnitRes).find('li').each(function() {
+					message += "[assert]" + $(this).attr("class");
+					message += "[message]*" + $(this).children("span").text() + "\n";
+				});
 				// All tests pass
 				if (oPass.length > 0 && oFail.length == 0) {
 					this.report('PASS', message);
@@ -174,10 +180,6 @@
 					$(oRes).find('tr.fail').each(function() {
 						message += " *" + $(this).children("td:eq(1)").text() + ": ";
 						message += $(this).children("td:eq(2)").text();
-					});
-					var oRes2 = $(oTestDoc).find("#qunit-tests");
-					$(oRes2).find('tr.test-source').each(function() {
-						message += " *" + $(this).children("td").text();
 					});
 					this.report('FAIL', message);
 					return true;
