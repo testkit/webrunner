@@ -32,7 +32,7 @@ Authors:
 	function TestRunner() {
 		this.start = null;
 		this.ui = null;
-		this.submitResult = function () {};
+		this.submitResult = null;
 		this.report = function (result, message) {};
 		this.doTest = function () {};
 	}
@@ -40,18 +40,21 @@ Authors:
 	TestRunner.prototype = (function () {
 		var index = -1;
 		var Tests = [];
-		var Testsuites = {};
-		var TestsuiteSums = {};
-		var TestsetSums =  {};
-		var sum = newSummary();
-		var testContext =  newTestContext();
-		function newSummary(sum) {
-			if (typeof sum === "undefined")
-				return {"TOTAL": 0, "PASS" : 0, "FAIL" : 0, "BLOCK" : 0, "NOTRUN" : 0};
-			return {"TOTAL": sum.TOTAL, "PASS": sum.PASS, "FAIL": sum.FAIL, "BLOCK": sum.BLOCK, "NOTRUN": sum.NOTRUN};
+		var Sets =  {};
+		function newSummary() {
+			return {"TOTAL": 0,
+				"PASS" : 0,
+				"FAIL" : 0,
+				"BLOCK" : 0,
+				"NOTRUN" : 0};
 		}
 		function newTestContext() {
-			return {start_time: null, prev_uri: "", uri: "", sub_index: 0, onload_delay: 0};
+			return {start_time: null,
+				prev_uri: "",
+				uri: "",
+				sub_index: 0,
+				onload_delay: 0
+			};
 		}
 		function getParms () {
 			var parms = {};
@@ -71,17 +74,18 @@ Authors:
 				} else
 				   parms[items[i]] = 1;
 			}
+			if (!parms.testsuite)
+				parms.testsuite = 'tests.xml';
 			return parms;
 		}
-		return {
+		var parms = getParms();
+		var sum = newSummary();
+		var testContext =  newTestContext();
+		return { 
 			constructor: TestRunner,
-			options:  getParms(),
-			addTestsuite: function (testsuite, category) {
-				if (!category)
-					category = "default";
-				if (typeof Testsuites[category] === "undefined")
-					Testsuites[category] = [];
-				Testsuites[category].push(testsuite);
+			options:  parms,
+			getTestContext: function (field) {
+				return testContext[field];
 			},
 
 			goNext: function () {
@@ -93,7 +97,7 @@ Authors:
 				index++;
 				return true;
 			},
-
+	
 			goPrev: function () {
 				if (Tests.length === 0) return false;
 				if (index < 0) {
@@ -106,12 +110,12 @@ Authors:
 
 			runAll: function () {
 				testContext = newTestContext();
-				VIEWFLAGS.add("batch");
-				this.ui.updateView(VIEWFLAGS.del("suite"));
-				this.testIndex(-1);
+				this.ui.updateView(VIEWFLAGS.add("batch"));
+				this.ui.updateView(VIEWFLAGS.del("list"));
+				this.testIndex(-1);	
 				this.doTest();
 			},
-
+	
 			cleanTests: function () {
 				Tests = [];
 			},
@@ -141,24 +145,20 @@ Authors:
 				sum.TOTAL = sum.NOTRUN = num;
 				sum.PASS = sum.FAIL = sum.BLOCK = 0;
 			},
-
+			
 			sumUpdate: function (oldRes, newRes, set) {
 				if (oldRes !== null) {
 					sum[oldRes]--;
-					if (set !== null) TestsetSums[set][oldRes]--;
+					if (set !== null) Sets[set][oldRes]--;
 				}
 				if (newRes !== null) {
 					sum[newRes]++;
-					if (set != null) TestsetSums[set][newRes]++;
+					if (set != null) Sets[set][newRes]++;
 				}
 			},
 
 			checkResult: function (oTestDoc) {
 				var message = "";
-				if (!oTestDoc) {
-					this.report('FAIL', 'Test page crash');
-					return true;
-				}
 				// Handle sub-index test
 				if (testContext.sub_index > 0) {
 					var oRes = $(oTestDoc).find("table#results");
@@ -176,12 +176,6 @@ Authors:
 
 				var oPass = $(oTestDoc).find(".pass");
 				var oFail = $(oTestDoc).find(".fail");
-				// Qunit sub-cases
-				var oUnitRes = $(oTestDoc).find("ol.qunit-assert-list");
-				$(oUnitRes).find('li').each(function() {
-					message += "[assert]" + $(this).attr("class");
-					message += "[message]*" + $(this).children("span").text() + "\n";
-				});
 				// All tests pass
 				if (oPass.length > 0 && oFail.length == 0) {
 					this.report('PASS', message);
@@ -274,43 +268,22 @@ Authors:
 				this.doTest();
 			},
 
-			getListSum: function () {
-				var sumdata = "";
-				sumdata += "<p><table id='browse'><tr><th>Testsuite</th>";
-				sumdata += "<th>Total</th><th>Pass</th><th>Fail</th><th>Block</th></tr>";
-				$.each(TestsuiteSums, function (key, val){
-					sumdata += "<tr><td>" + key+ "</td>";
-					sumdata += "<td style='color:black;'>" + val.TOTAL + "</td>";
-					sumdata += "<td style='color:green;'>" + val.PASS + "</td>";
-					sumdata += "<td style='color:red;'>" + val.FAIL + "</td>";
-					sumdata += "<td style='color:orange;'>" + val.BLOCK + "</td></tr>";
-				});
-				sumdata += "</table>";
-				return sumdata;
-			},
-
 			getTestSum: function (include_set) {
 				var sumdata = "<section><h3>Total:" + sum.TOTAL
 						+ " Pass:<span style='color:green;'>" + sum.PASS
 						+ "</span> Fail:<span style='color:red;'>" + sum.FAIL
 						+ "</span> Block:<span style='color:orange;'>" + sum.BLOCK
-						+ "</span> Notrun:<span style='color:black;'>" + sum.NOTRUN
-						+ "</span>";
-                                if (this.options.notifyInfo) {
-					sumdata += "<span style='color:slateblue;'> " + this.options.notifyInfo + "</span>";
-					this.options.notifyInfo = "";
-				}
-				sumdata += "</h3></section>";
+						+ "</span> NotRun:<span style='color:black;'>" + sum.NOTRUN
+						+ "</span></h3></section>";
 				if (VIEWFLAGS.has("batch")) {
 					var tc = this.getTest();
 					if (tc)	sumdata += "<h4><span style='background-color: wheat'>(#" + index + ") " + tc.id + "</span></h4>";
 				}
-				if (this.options.testsuite_name)
-					TestsuiteSums[this.options.testsuite_name] = newSummary(sum)
+
 				if (include_set) {
-					sumdata += "<p><table id='browse'><tr><th>Testset</th>";
+					sumdata += "<p><table id='browse'><tr><th>TestSet</th>";
 					sumdata += "<th>Total</th><th>Pass</th><th>Fail</th><th>Block</th></tr>";
-					$.each(TestsetSums, function (key, val){
+					$.each(Sets, function (key, val){
 						sumdata += "<tr><td>" + key+ "</td>";
 						sumdata += "<td style='color:black;'>" + val.TOTAL + "</td>";
 						sumdata += "<td style='color:green;'>" + val.PASS + "</td>";
@@ -322,37 +295,20 @@ Authors:
 				return sumdata;
 			},
 
-			getListInfo: function () {
-				function createList(category) {
-					var testList = "";
-					$.each(Testsuites[category], function (ind, val) {
-						testList += "<li><input type='checkbox' id='" + val + "'>&nbsp;<a href=''>" + val + "</a>" + "</li>";
-					});
-					return testList;
-				}
-				var data = "<html><head><style>.category{background: #cccccc;border: 1px solid #aaaaaa;} li{list-style-type: none; padding-left: 0.6em; padding-bottom:0.8em; font-size: 1.3em;}html{font-family:DejaVu Sans, Bitstream Vera Sans, Arial, Sans;}</style></head><body>";
-				$.each(Testsuites, function(key, val) {
-					data += "<section><h3 class='category'><input type='checkbox' id='" + key + "'>&nbsp;" + key + "</h3>"
-					data +=  createList(key) + "</section>";
-				});
-				data += "</body></html>";
-				return data;
-			},
-
 			getBrowseInfo: function () {
 				var failList = passList = blockList = notrunList = "";
 				function createTestList(tc, color, ind) {
-					var mtag = (tc.execution_type === "manual") ? "(M)" : "";
+					var mtag = (tc.execution_type === "manual") ? "(M)" : ""; 
 					return "<li>" + mtag + "<a rel='" + ind + "' href='' style ='color:" + color + ";'>" + tc.id + "</a>" + "</li>";
 				}
-				TestsetSums = {};
-				$.each(Tests, function (ind, val) {
+				Sets = {};
+				$.each(Tests, function (ind ,val) {
 					if (this.set === null)
 						this.set = "default";
-					if (typeof TestsetSums[this.set] === "undefined")
-						TestsetSums[this.set] = newSummary();
-					TestsetSums[this.set][this.result]++;
-					TestsetSums[this.set]["TOTAL"]++;
+					if (typeof Sets[this.set] === "undefined")
+						Sets[this.set] = newSummary(); 
+					Sets[this.set][this.result]++;
+					Sets[this.set]["TOTAL"]++;
 					if (this.result == "FAIL")
 						failList += createTestList(this, "red", ind);
 					if (this.result == "PASS")
@@ -365,13 +321,13 @@ Authors:
 				var data = "<html><head><style>ul li {padding-bottom:0.8em;font-size: 1.3em;}";
 				data += "html{font-family:DejaVu Sans, Bitstream Vera Sans, Arial, Sans;}</style></head><body>";
 				if (notrunList)
-					data += "<section><h3>Notrun</h3><ul>" + notrunList + "</ul></section>";
+					data += "<section><h3>Notruns</h3><ul>" + notrunList + "</ul></section>";
 				if (failList)
-					data += "<section><h3 style='color: red;'>Fail</h3><ul>" + failList + "</ul></section>";
+					data += "<section><h3 style='color: red;'>Fails</h3><ul>" + failList + "</ul></section>";
 				if (blockList)
-					data += "<section><h3 style='color: orange;'>Block</h3><ul>" + blockList + "</ul></section>";
+					data += "<section><h3 style='color: orange;'>Blocks</h3><ul>" + blockList + "</ul></section>";
 				if (passList)
-					data += "<section><h3 style='color: green'>Pass</h3><ul>" + passList + "</ul></section>";
+					data += "<section><h3 style='color: green'>Passes</h3><ul>" + passList + "</ul></section>";
 				data += "</body></html>";
 				return data;
 			},
@@ -388,15 +344,7 @@ Authors:
 					onload_delay: 0,
 					steps: "",
 					data: null};
-			},
-
-			TestSuite: function () {
-				return {
-					id: null,
-					sum: null,
-					data: null};
 			}
-
 		};
 	   }());
 	// Standalone test runner
@@ -443,30 +391,19 @@ Authors:
 		}
 
 		var self = this;
-		if (ui) ui.bind(self);
-		if (self.options.testsuite_name)
-			self.options.testsuite = "opt/" + self.options.testsuite_name + "/tests.xml";
-		if (!self.options.testsuite) {
-			$.getJSON(TESTLIST_FILE, function(data) {
-				for (var i = 0, imax = data.length; i < imax; i++) {
-					for (var j = 0, jmax = data[i].tests.length; j < jmax; j++)
-						self.addTestsuite(data[i].tests[j], data[i].category);
-				}
-				self.ui.list();
-				self.options.multiplex = true;
-			});
-		} else {
-			$.get(self.options.testsuite, null, function (xml) {
-				self.internal.xmldoc = xml;
-				filter(xml, self);
-				self.sumInit();
+		ui.bind(self);
+		$.get(self.options.testsuite, null, function (xml) {
+			self.internal.xmldoc = xml;
+			filter(xml, self);
+			self.sumInit();
+			setTimeout(function () {
 				self.ui.browse();
 				setTimeout(function () {
-				if (self.options.autorun)
-					self.runAll();
-				}, 500);
-			}, "xml");
-		}
+					if (self.options.autorun)
+						self.runAll();
+				}, 2000);
+			}, 100);
+		}, "xml");
 	};
 
 	master_runner.doTest = function () {
@@ -479,21 +416,17 @@ Authors:
 			self.ui.runTest(self.getTestCaseUrl());
 			return;
 		}
-		this.ui.updateView(VIEWFLAGS.del("batch"));
 		if (self.options.autorun) {
 			self.submitResult();
-			if (self.options.multiplex) {
-				self.ui.list();
-				return;
-			}
 			close_window();
 			return;
 		}
+		this.ui.updateView(VIEWFLAGS.del("batch"));
 		if (!tc) {
 			setTimeout(function () {self.ui.browse();}, 500);
 			return;
 		}
-		this.ui.updateTest();
+		this.ui.updateTest();	
 	};
 
 	master_runner.report = function (result, log) {
@@ -505,7 +438,8 @@ Authors:
 		$(tc.data).find('result_info').remove();
 		$(tc.data).attr('result', result);
 		var doc = $.parseXML("<result_info><actual_result>" + result +
-				   "</actual_result><stdout>" +
+				   "</actual_result><start>" + this.getTestContext("start_time") +
+				   "</start><end>" + new Date() + "</end><stdout>" +
 				   escape_html(log) + "</stdout></result_info>");
 		$(tc.data).append(doc.documentElement);
 		if (VIEWFLAGS.has("batch")) result = null;
@@ -513,12 +447,9 @@ Authors:
 	};
 
 	master_runner.submitResult = function () {
-		var SERVER = "http://127.0.0.1:8080";
-		var contents = (new XMLSerializer()).serializeToString(this.internal.xmldoc);
-		var resfile = "tests.res.xml";
-		if (this.options.testsuite_name)
-			resfile = this.options.testsuite_name + "." + resfile;
-		$.post(SERVER + "/save_file", {filename: resfile, data: contents})
+		var xmldoc = this.internal.xmldoc;
+		var contents = (new XMLSerializer()).serializeToString(xmldoc);
+		if (window.opener) window.opener.postMessage(contents, "*");
 	};
 
 	master_runner.internal = {xmldoc: null};
@@ -534,10 +465,8 @@ Authors:
 		self.internal.session_id = Math.round(Math.random() * 10000);
 		sync_session_id();
 		var next_step = self.internal.get_json("ask_next_step");
-		if (!next_step || next_step.step != "continue") {
-			close_window();
-			return false;
-		}
+		if (!next_step || next_step.step != "continue")
+			 return false;
 		ui.bind(self);
 		var f = function () {
 			var p = self.internal.get_json("check_execution_progress");
@@ -545,7 +474,7 @@ Authors:
 			self.doTest();
 		};
 		self.ui.updateView(VIEWFLAGS.add("batch"));
-		self.ui.updateView(VIEWFLAGS.del("suite"));
+		self.ui.updateView(VIEWFLAGS.del("list"));
 		setTimeout(f, 1000);
 		return true;
 	};
@@ -660,13 +589,12 @@ Authors:
 		var btnPass = $("#btnPass").get(0);
 		var btnFail = $("#btnFail").get(0);
 		var btnBlock = $("#btnBlock").get(0);
-		var btnExit = $("#btnExit").get(0);
+		var btnDone = $("#btnDone").get(0);
 		var btnNext = $("#btnNext").get(0);
 		var btnPrev = $("#btnPrev").get(0);
 		var btnRun	= $("#btnRun").get(0);
 		var divSum = $("#divSum").get(0);
-		var btnBack = $("#btnBack").get(0);
-		var btnSave = $("#btnSave").get(0);
+		var btnList = $("#btnList").get(0);
 		var runner = null;
 		var listmode = null;
 		var nextTest = function () {
@@ -723,124 +651,69 @@ Authors:
 				$(btnPrev).on("click", prevTest);
 				$(btnRun).on("click",  function () {
 					if (VIEWFLAGS.has("list")) {
-						runner.options.auto_testsuites = [];
-						var tdoc = frmTest.contentWindow.document;
-						$(tdoc).find("section li>input:checked").each(function () {
-							var tname = $(this).attr("id");
-							runner.options.auto_testsuites.push(tname);
-						});
-						self.list();
-					} else if (VIEWFLAGS.has("suite")) {
 						runner.runAll();
-					} else
+					} else 
 						self.runTest(runner.getTestCaseUrl());
 				});
 				$(frmTest).on("load",  function () {runner.loadReady();});
-				$(btnExit).on("click", function () {
+				$(btnDone).on("click", function () {
 					runner.submitResult();
-					if (runner.options.multiplex && VIEWFLAGS.has("suite"))
-						self.list();
-					else
-						close_window();
+					close_window();
 				});
-				$(btnBack).on("click", function () {
+				$(btnList).on("click", function () {
 					frmTest.src = "";
+					//self.updateTest(-1);
 					setTimeout(function () {self.browse();}, 300);
-				});
-				$(btnSave).on("click", function () {
-					runner.submitResult();
-					runner.options.notifyInfo = "*Save succeed*";
-					$(divSum).html(runner.getTestSum(true));
 				});
 				frmTest.height = $(window).height();
 			},
-
-			list: function () {
-				var tdoc = frmTest.contentWindow.document;
-				$(btnExit).attr("value", "Exit");
-				tdoc.open("text/html", "replace");
-				tdoc.writeln(runner.getListInfo());
-				var self = this;
-				$(tdoc).find("section li>a").on("click", function (e) {
-					runner.options.testsuite_name = $(this).text();
-					VIEWFLAGS.del("list");
-					runner.start();
-					window.scrollTo(0, 0);
-					e.preventDefault();
-				});
-				$(tdoc).find("section h3>input[type=checkbox]").on("click", function () {
-					$boxs = $(this).parent().parent().find("li>input[type=checkbox]");
-					$boxs.prop('checked', $(this).is(':checked'));
-				});
-				$(divSum).html(runner.getListSum());
-				runner.cleanTests();
-				self.updateView(VIEWFLAGS.add("list"));
-				if (runner.options.auto_testsuites) {
-					if (runner.options.auto_testsuites.length > 0) {
-						var ts = runner.options.auto_testsuites.shift();
-						runner.options.testsuite_name = ts;
-						runner.options.autorun = true;
-						VIEWFLAGS.del("list");
-						runner.start();
-					} else
-						runner.options.autorun = false;
-				}
-			},
-
+		
 			browse: function () {
 				var tdoc = frmTest.contentWindow.document;
-				if (runner.options.multiplex)
-					$(btnExit).attr("value", "Back");
 				tdoc.open("text/html", "replace");
 				tdoc.writeln(runner.getBrowseInfo());
 				var self = this;
 				$(tdoc).find("section ul li>a").on("click", function (e) {
 					var ind = parseInt($(this).attr("rel"));
-					self.updateView(VIEWFLAGS.del("suite"));
+					self.updateView(VIEWFLAGS.del("list"));	
 					self.updateTest(ind);
 					window.scrollTo(0, 0);
 					e.preventDefault();
 				});
 				$(divSum).html(runner.getTestSum(true));
-				self.updateView(VIEWFLAGS.add("suite"));
+				self.updateView(VIEWFLAGS.add("list"));	
 			},
-
+	
 			updateTest: function (ind) {
 				if (typeof ind !== "undefined") runner.testIndex(ind);
 				selectTest();
 			},
 
 			updateView: function (flags) {
-				if (flags & VIEWFLAGS.flags.batch)
-					$(".batchhide").hide();
-				else {
-					$(".batchhide").show();
-					if (flags & VIEWFLAGS.flags.list) {
-						$(".tchide").show();
-						$(".suitehide").show();
-						$(".listhide").hide();
-					} else if (flags & VIEWFLAGS.flags.suite) {
-						$(".listhide").show();
-						$(".tchide").show();
-						$(".suitehide").hide();
-					} else {
-						$(".listhide").show();
-						$(".suitehide").show();
-						$(".tchide").hide();
-					}
+				if (flags & VIEWFLAGS.flags.list) {
+					$(".listmode").show();
+					$(".singlemode").hide();
+				} else {
+					$(".listmode").hide();
+					$(".singlemode").show();
 				}
+				if (flags & VIEWFLAGS.flags.batch)
+					$(".batchmode").hide();
+				else
+					$(".batchmode").show();
 			},
 
 	  		testComplete: function () {
 				return runner.checkResult(frmTest.contentWindow.document);
 			},
-
+ 
 			runTest: function (uri) {
 				if (uri === null) return;
 				if (uri)
 					frmTest.src = uri;
 				else
 					runner.loadReady();
+				
 			},
 
 			updateTestInfo: function (info, sum, result) {
@@ -864,14 +737,7 @@ Authors:
 	}
 
 	function close_window() {
-		setTimeout(function () {
-			window.open('', '_self', '');
-			window.close();
-			if (window.parent != window.self) {
-				window.parent.onbeforeunload = null;
-				window.parent.close();
-			}
-		}, 1000);
+		setTimeout("window.open('','_self','');window.close()", 1000);
 	}
 
 	function pre_init() {
@@ -883,9 +749,8 @@ Authors:
 			master_runner.start(i_ui);
 	}
 	var SERVER = "http://127.0.0.1:8000";
-	var TESTLIST_FILE = "testlist.json"
 	var VIEWFLAGS = { val: 0,
-		flags: {suite: 1, batch: 2, list: 4},
+		flags: {list: 1, batch: 2},
 		add: function (f) { this.val |= this.flags[f]; return this.val},
 		del: function (f) { this.val &= ~this.flags[f]; return this.val},
 		has: function (f) { return this.val & this.flags[f];},
