@@ -190,6 +190,22 @@ Authors:
               }
             });
           }
+          //khronos unit sub-cases
+          oKhronosUnitConsole = $(oTestDoc).find("div#test-log");
+          if (oKhronosUnitConsole.length > 0) {
+            $(oKhronosUnitConsole).find("div").each(function() {
+              $(this).find("div").each(function() {
+                oSpan = $(this).children("h3").children("span");
+                if (oSpan.length > 0) {
+                   message += "[assert]" + $(oSpan).text().split(":")[0]
+                   message += "[message]*" + $(oSpan).parent().text() + "\n";
+                }
+                $(this).find("p").each(function() {
+                  message += $(this).text() + "\n";
+                });
+              });
+            });
+          }
         }
         else if (oUnitRes.length > 0) {
           // Qunit sub-cases
