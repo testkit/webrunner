@@ -176,12 +176,45 @@ Authors:
 
         var oPass = $(oTestDoc).find(".pass");
         var oFail = $(oTestDoc).find(".fail");
-        // Qunit sub-cases
         var oUnitRes = $(oTestDoc).find("ol.qunit-assert-list");
-        $(oUnitRes).find('li').each(function() {
-          message += "[assert]" + $(this).attr("class");
-          message += "[message]*" + $(this).children("span").text() + "\n";
-        });
+
+        if (oUnitRes.length == 0) {
+          //khronos sub-cases
+          oKhronosConsole = $(oTestDoc).find("div#console");
+          if (oKhronosConsole.length > 0) {
+            $(oKhronosConsole).find("span").each(function() {
+              oSpan = $(this).children("span").children("span");
+              if (oSpan.length > 0) {
+                message += "[assert]" + $(oSpan).attr("class");
+                message += "[message]*" + $(oSpan).parent().text() + "\n";
+              }
+            });
+          }
+          //khronos unit sub-cases
+          oKhronosUnitConsole = $(oTestDoc).find("div#test-log");
+          if (oKhronosUnitConsole.length > 0) {
+            $(oKhronosUnitConsole).find("div").each(function() {
+              $(this).find("div").each(function() {
+                oSpan = $(this).children("h3").children("span");
+                if (oSpan.length > 0) {
+                   message += "[assert]" + $(oSpan).text().split(":")[0]
+                   message += "[message]*" + $(oSpan).parent().text() + "\n";
+                }
+                $(this).find("p").each(function() {
+                  message += $(this).text() + "\n";
+                });
+              });
+            });
+          }
+        }
+        else if (oUnitRes.length > 0) {
+          // Qunit sub-cases
+          $(oUnitRes).find('li').each(function() {
+            message += "[assert]" + $(this).attr("class");
+            message += "[message]*" + $(this).children("span").text() + "\n";
+          });
+        }
+
         // All tests pass
         if (oPass.length > 0 && oFail.length == 0) {
           this.report('PASS', message);
