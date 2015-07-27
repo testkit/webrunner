@@ -179,6 +179,24 @@ Authors:
         var oUnitRes = $(oTestDoc).find("ol.qunit-assert-list");
 
         if (oUnitRes.length == 0) {
+          //testharness sub-cases
+          var oThResults = $(oTestDoc).find("table#results");
+          if (oThResults.length > 0) {
+            var oTrs = $(oThResults).find('tbody > tr');
+            if (oTrs.length >0) {
+              $(oTrs).each(function() {
+                message += "[assert]" + $(this).children("td:eq(0)").text();
+                message += "[id]" + $(this).children("td:eq(1)").text();
+                var sub_message = $(this).children("td:eq(2)").text();
+                if (sub_message !== ' ') {
+                  message += "[message]*" + sub_message + "\n";
+                } else {
+                  message += "[message]" + "\n";
+                }
+              });
+            }
+          }
+
           //khronos sub-cases
           oKhronosConsole = $(oTestDoc).find("div#console");
           if (oKhronosConsole.length > 0) {
@@ -206,8 +224,7 @@ Authors:
               });
             });
           }
-        }
-        else if (oUnitRes.length > 0) {
+        } else if (oUnitRes.length > 0) {
           // Qunit sub-cases
           $(oUnitRes).find('li').each(function() {
             message += "[assert]" + $(this).attr("class");
@@ -222,11 +239,6 @@ Authors:
         }
         // Handle failed tests
         if (oFail.length > 0) {
-          var oRes = $(oTestDoc).find("table#results");
-          $(oRes).find('tr.fail').each(function() {
-            message += " *" + $(this).children("td:eq(1)").text() + ": ";
-            message += $(this).children("td:eq(2)").text();
-          });
           this.report('FAIL', message);
           return true;
         }
