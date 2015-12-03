@@ -76,7 +76,7 @@ textarea#testinfo{
   font-size: 0.8em;
 }
 input{
-  font-size: 1.2em;
+  font-size: 1em;
   padding-top: 0.1em;
   padding-bottom: 0.1em;
 }
@@ -84,8 +84,7 @@ input{
 #btnPrev,#btnNext{
   width: 8%;
 }
-#btnExit,#btnRun,#btnSave,#btnBack,#btnPass,#btnFail,#btnBlock{
-  width: 16%;
+#btnExit,#btnRun,#btnRunRef,#btnSave,#btnBack,#btnPass,#btnFail,#btnBlock{
   font-weight: bold;
 }
 
@@ -94,11 +93,11 @@ input{
 #btnBlock { color: orange;}
 #labBatch{ font-size: 0.5em;}
 #textTest { width: 53%; }
-#title { font-size: 1.4em; font-weight: bold;}
+#title { font-size: 1.2em; font-weight: bold;}
 #frmTest { border: none;}
 .listhide { display: none;}
 .short{
-  padding-left: 1em;
+  padding-right: 0.1em;
 }
 </style>
 </head>
@@ -121,6 +120,7 @@ input{
 </div>
 <div id="footbar" class="batchhide">
   <span class="short"><input type="button"  id="btnRun" value="Run"/></span>
+  <span class="short listhide suitehide"><input type="button"  id="btnRunRef" value="Run Ref"/></span>
   <span class="short listhide tchide"><input type="button" id="btnSave" value="Save"/></span>
   <span class="short listhide suitehide"><input type="button" id="btnPass" value="PASS"/></span>
   <span class="short listhide suitehide"><input type="button" id="btnFail" value="FAIL"/></span>
