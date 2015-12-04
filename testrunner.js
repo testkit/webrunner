@@ -251,6 +251,8 @@ Authors:
         if (!tc) return info;
         info += "Test   : (" + (index + 1) + "/" + sum.TOTAL + ") ";
         info += tc.test_script_entry;
+        if (tc.refer_test_script_entry)
+            info += "\nRef Test: "+ tc.refer_test_script_entry;
         info += "\nPurpose: " +  tc.purpose;
         if (tc.pre_condition)
           info += "\nPrecondition: " + tc.pre_condition;
@@ -299,6 +301,37 @@ Authors:
           testContext.sub_index = 0;
         }
         testContext.prev_uri = testContext.uri;
+        testContext.start_time = new Date();
+        return testContext.uri;
+      },
+
+      getRefTestCaseUrl: function () {
+        function getUriField(uri, param) {
+          var querys = uri.split("?")
+          if (querys.length <= 1)
+            return "";
+          uri = querys[1];
+          var start = uri.indexOf(param);
+          if (start == -1)
+            return "";
+          start += param.length + 1;
+          var end = uri.indexOf("&", start);
+          if (end == -1)
+            return uri.substring(start);
+          return uri.substring(start, end);
+        }
+        var tc = this.getTest();
+        if (!tc) return null;
+
+        var uri = tc.refer_test_script_entry;
+        if (typeof this.options.testprefix !== "undefined") {
+          var pos = uri.indexOf('http://');
+          if (pos !== 0)
+            uri = this.options.testprefix + uri
+        }
+        var val = getUriField(uri, "value");
+        testContext.uri = uri;
+        testContext.sub_index = 0;
         testContext.start_time = new Date();
         return testContext.uri;
       },
@@ -425,6 +458,7 @@ Authors:
         return {
           id: null,
           test_script_entry: null,
+          refer_test_script_entry: null,
           execution_type: "manual",
           result: "NOTRUN",
           purpose: "",
@@ -471,6 +505,7 @@ Authors:
           test.id = $(this).attr("id");
           test.execution_type = $(this).attr("execution_type");
           test.test_script_entry = $(this).find("test_script_entry").text();
+          test.refer_test_script_entry = $(this).find("refer_test_script_entry").text();
           test.purpose = $(this).attr("purpose");
           test.pre_condition = $(this).find("pre_condition").text();
           test.onload_delay = $(this).attr("onload_delay");
@@ -635,6 +670,7 @@ Authors:
             var test = self.TestCase();
             test.id = mtask[i].case_id;
             test.test_script_entry = mtask[i].entry;
+            test.refer_test_script_entry = mtask[i].refer_entry;
             test.purpose = mtask[i].purpose;
             test.pre_condition = mtask[i].pre_condition;
             test.result = "NOTRUN";
@@ -709,6 +745,7 @@ Authors:
     var btnNext = $("#btnNext").get(0);
     var btnPrev = $("#btnPrev").get(0);
     var btnRun  = $("#btnRun").get(0);
+    var btnRunRef  = $("#btnRunRef").get(0);
     var divSum = $("#divSum").get(0);
     var btnBack = $("#btnBack").get(0);
     var btnSave = $("#btnSave").get(0);
@@ -742,6 +779,11 @@ Authors:
       testinfo.value = runner.testInfo();
       $(divSum).html(runner.getTestSum(false));
       textTest.value = ((tc.execution_type === "manual") ? "(M)" : "") + tc.id;
+      if (tc.refer_test_script_entry){
+          $(btnRunRef).prop("disabled", false);
+      } else {
+          $(btnRunRef).prop("disabled", true);
+      }
       changeColor(tc.result);
     };
 
@@ -780,6 +822,11 @@ Authors:
           } else
             self.runTest(runner.getTestCaseUrl());
         });
+
+        $(btnRunRef).on("click",  function () {
+           self.runTest(runner.getRefTestCaseUrl());
+        });
+
         $(frmTest).on("load",  function () {runner.loadReady();});
         $(btnExit).on("click", function () {
           runner.submitResult();
